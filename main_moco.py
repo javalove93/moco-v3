@@ -141,13 +141,20 @@ def main():
     args.distributed = args.world_size > 1 or args.multiprocessing_distributed
 
     ngpus_per_node = torch.cuda.device_count()
+    print(f"ngpus_per_node: {ngpus_per_node}")
+    print(f"multiprocessing_distributed: {args.multiprocessing_distributed}")
     if args.multiprocessing_distributed:
         # Since we have ngpus_per_node processes per node, the total world_size
         # needs to be adjusted accordingly
         args.world_size = ngpus_per_node * args.world_size
         # Use torch.multiprocessing.spawn to launch distributed processes: the
         # main_worker process function
-        mp.spawn(main_worker, nprocs=ngpus_per_node, args=(ngpus_per_node, args))
+        if ngpus_per_node == 0:
+            print("No GPU !!!")
+            exit(1)
+        result = mp.spawn(main_worker, nprocs=ngpus_per_node, args=(ngpus_per_node, args))
+        print(f"result: {result}")
+
     else:
         # Simply call main_worker function
         main_worker(args.gpu, ngpus_per_node, args)
@@ -155,6 +162,7 @@ def main():
 
 def main_worker(gpu, ngpus_per_node, args):
     args.gpu = gpu
+    print(f"gpu: {gpu}")
 
     # suppress printing if not first GPU on each node
     if args.multiprocessing_distributed and (args.gpu != 0 or args.rank != 0):
